@@ -1,0 +1,29 @@
+# Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Backend
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+env/
+.env
+
+# Substrate Binaries (Auto-deployed)
+backend/bin/*
+!backend/bin/.gitkeep
+
+# System/IDE
+.DS_Store
+.vscode/
+.idea/
+.gemini/
+.antigravity/
+
+# Logs & Temporary
+*.log
+release_cache.json
