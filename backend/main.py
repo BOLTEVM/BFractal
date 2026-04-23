@@ -60,18 +60,25 @@ class TelemetryBroadcaster:
                 node_info = await rpc.get_blockchain_info()
                 mining_info = await rpc.get_mining_info()
                 
-                res = node_info.get("result", {})
-                self.state.update({
-                    "node_running": coordinator.node.running,
-                    "miner_running": coordinator.miner.running,
-                    "block_height": res.get("blocks", 0),
-                    "headers_synced": res.get("headers", 0),
-                    "sync_progress": res.get("verificationprogress", 0),
-                    "peers": res.get("connections", 0),
-                    "hashrate": coordinator.miner.hashrate,
-                    "difficulty": mining_info.get("result", {}).get("difficulty", 0),
-                    "logs": coordinator.get_logs()
-                })
+                if node_info and mining_info:
+                    res = node_info.get("result", {})
+                    self.state.update({
+                        "node_running": coordinator.node.running,
+                        "miner_running": coordinator.miner.running,
+                        "block_height": res.get("blocks", 0),
+                        "headers_synced": res.get("headers", 0),
+                        "sync_progress": res.get("verificationprogress", 0),
+                        "peers": res.get("connections", 0),
+                        "hashrate": coordinator.miner.hashrate,
+                        "difficulty": mining_info.get("result", {}).get("difficulty", 0),
+                        "logs": coordinator.get_logs()
+                    })
+                else:
+                    self.state.update({
+                        "node_running": coordinator.node.running,
+                        "miner_running": coordinator.miner.running,
+                        "logs": coordinator.get_logs()
+                    })
             except Exception as e:
                 logger.error(f"Broadcaster poll error: {e}")
             await asyncio.sleep(1)

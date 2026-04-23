@@ -55,7 +55,8 @@ def to_wsl_path(win_path: str) -> str:
     
     drive, path = win_path.split(":", 1)
     # C:\path -> /mnt/c/path
-    return f"/mnt/{drive.lower()}{path.replace('\\', '/')}"
+    unix_path = path.replace("\\", "/")
+    return f"/mnt/{drive.lower()}{unix_path}"
 
 
 class FractalNode(BaseSubstrate):
