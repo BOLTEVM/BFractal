@@ -77,9 +77,11 @@ class FractalNode(BaseSubstrate):
                 has_wsl, wsl_state = SubstrateDeployer(self.bin_dir).is_wsl_available()
                 if not has_wsl:
                     if wsl_state == "COMMAND_NOT_FOUND":
-                        self.add_log("ERROR", "WSL is not installed. Native Windows Node build recommended.")
+                        self.add_log("ERROR", "WSL is not installed. Please install WSL and Ubuntu.")
+                    elif wsl_state == "DOCKER_DESKTOP_ONLY":
+                        self.add_log("ERROR", "WSL is set to 'docker-desktop'. Please install Ubuntu: run 'wsl --install -d Ubuntu'")
                     else:
-                        self.add_log("ERROR", "WSL distro mismatch. Please install Ubuntu or use native build.")
+                        self.add_log("ERROR", "WSL found but no Linux distro is installed. Please run 'wsl --install'.")
                     return
                 self.is_wsl = True
                 exe_path = linux_path
