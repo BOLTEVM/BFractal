@@ -60,8 +60,9 @@ class TelemetryBroadcaster:
                 node_info = await rpc.get_blockchain_info()
                 mining_info = await rpc.get_mining_info()
                 
-                if node_info and mining_info:
-                    res = node_info.get("result", {})
+                if node_info and node_info.get("result") and mining_info and mining_info.get("result"):
+                    res = node_info["result"]
+                    m_res = mining_info["result"]
                     self.state.update({
                         "node_running": coordinator.node.running,
                         "miner_running": coordinator.miner.running,
@@ -70,7 +71,7 @@ class TelemetryBroadcaster:
                         "sync_progress": res.get("verificationprogress", 0),
                         "peers": res.get("connections", 0),
                         "hashrate": coordinator.miner.hashrate,
-                        "difficulty": mining_info.get("result", {}).get("difficulty", 0),
+                        "difficulty": m_res.get("difficulty", 0),
                         "logs": coordinator.get_logs()
                     })
                 else:

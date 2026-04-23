@@ -16,6 +16,7 @@
   --neon-amber: #f59e0b;
   --neon-red: #ef4444;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 body {
@@ -242,7 +243,7 @@ select.input-glow {
 }
 
 .stat-widget .stat-header { font-size: 0.7rem; color: var(--text-dim); }
-.stat-widget .stat-data { font-family: 'Orbitron'; font-size: 1.8rem; }
+.stat-widget .stat-data { font-family: var(--font-ui); font-size: 1.8rem; font-weight: 700; }
 .highlight { color: var(--primary); text-shadow: 0 0 10px var(--primary-glow); }
 
 /* CLI Terminal Section */
@@ -303,6 +304,7 @@ select.input-glow {
 .cat-NET   { color: var(--neon-green); border: 1px solid rgba(16, 185, 129, 0.3); }
 .cat-PROC  { color: var(--neon-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
 .cat-ERROR { color: var(--neon-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+.cat-SYSTEM { color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(255,255,255,0.05); }
 
 .cli-msg {
     color: #e2e8f0;

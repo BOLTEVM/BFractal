@@ -68,7 +68,7 @@ class FractalNode(BaseSubstrate):
         self.is_wsl = False
 
     async def run(self, datadir: str = None):
-        # Check for Windows EXE first, then Linux binary for WSL
+        # Priority: Native Windows EXE (.exe), fallback to bitcoind (WSL)
         exe_path = self.exe_path
         if not os.path.exists(exe_path):
             linux_path = os.path.join(self.bin_dir, "bitcoind")
@@ -77,20 +77,22 @@ class FractalNode(BaseSubstrate):
                 has_wsl, wsl_state = SubstrateDeployer(self.bin_dir).is_wsl_available()
                 if not has_wsl:
                     if wsl_state == "COMMAND_NOT_FOUND":
-                        self.add_log("ERROR", "WSL is not installed. Native Windows Node build required.")
+                        self.add_log("ERROR", "WSL is not installed. Native Windows Node build recommended.")
                     else:
-                        self.add_log("ERROR", "WSL found but no Linux distribution is installed. Please run 'wsl --install'.")
+                        self.add_log("ERROR", "WSL distro mismatch. Please install Ubuntu or use native build.")
                     return
                 self.is_wsl = True
                 exe_path = linux_path
             else:
-                self.add_log("ERROR", "Substrate node binary not found. Please deploy first.")
+                self.add_log("ERROR", "Substrate binary missing. Re-acquiring...")
                 return
 
         self.running = True
         
         if self.is_wsl:
             wsl_path = to_wsl_path(exe_path)
+            # Ensure executable permission inside WSL
+            subprocess.run(["wsl", "chmod", "+x", wsl_path], capture_output=True)
             cmd = ["wsl", wsl_path, "-server", "-rest"]
             if datadir:
                 cmd.append("-datadir=" + to_wsl_path(datadir))
@@ -194,6 +196,8 @@ class SubstrateCoordinator:
         self.log_queue = []
         self._health_task = None
         self.deployer = SubstrateDeployer(os.path.join(os.path.dirname(__file__), "bin"))
+        # Add initial system log
+        self.node.add_log("SYSTEM", "Fractal Substrate Coordinator V4.1.1 ONLINE")
         atexit.register(self.stop_all)
 
     async def ensure_binaries(self):

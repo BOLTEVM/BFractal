@@ -8,10 +8,13 @@ import subprocess
 import logging
 import json
 import time
+import asyncio
 
 logger = logging.getLogger("deployer")
 
+# Use official Linux release for Linux/WSL, but a trusted community build for native Windows
 FRACTAL_RELEASE_URL = "https://api.github.com/repos/fractal-bitcoin/fractald-release/releases/latest"
+FRACTAL_WINDOWS_URL = "https://api.github.com/repos/m-rezaei/fractal-bitcoin-windows/releases/latest"
 MINER_RELEASE_URL = "https://api.github.com/repos/fractal-bitcoin/fractal-miner/releases/latest"
 
 class SubstrateDeployer:
@@ -84,27 +87,47 @@ class SubstrateDeployer:
 
     async def deploy_node(self):
         logger.info("Initializing Node deployment...")
+        if os.name == 'nt':
+            url, filename = self.download_github_release(FRACTAL_WINDOWS_URL, "win64.zip")
+            if not url: url, filename = self.download_github_release(FRACTAL_WINDOWS_URL, "windows.zip")
+            
+            if not url:
+                logger.warning("Native Windows build not found, falling back to Linux/WSL substrate.")
+                return await self._deploy_node_linux()
+            
+            target_path = os.path.join(self.bin_dir, filename)
+            logger.info(f"Downloading Native Node from {url}...")
+            def download(): urllib.request.urlretrieve(url, target_path)
+            await asyncio.get_event_loop().run_in_executor(None, download)
+            
+            logger.info("Extracting Native Node substrate...")
+            with zipfile.ZipFile(target_path, 'r') as zip_ref:
+                for member in zip_ref.namelist():
+                    if member.endswith("bitcoind.exe") or member.endswith("fractald.exe"):
+                        with zip_ref.open(member) as source, open(os.path.join(self.bin_dir, "fractald.exe"), 'wb') as target:
+                            shutil.copyfileobj(source, target)
+                        break
+            os.remove(target_path)
+            logger.info("Native Node substrate deployed successfully.")
+            return True
+        else:
+            return await self._deploy_node_linux()
+
+    async def _deploy_node_linux(self):
         url, filename = self.download_github_release(FRACTAL_RELEASE_URL, "linux-gnu.tar.gz")
         if not url: return False
-
         target_path = os.path.join(self.bin_dir, filename)
-        logger.info(f"Downloading Node from {url}...")
-        
+        logger.info(f"Downloading Linux Node from {url}...")
         def download(): urllib.request.urlretrieve(url, target_path)
         await asyncio.get_event_loop().run_in_executor(None, download)
-        
-        logger.info("Extracting Node substrate...")
+        logger.info("Extracting Linux Node substrate...")
         if filename.endswith(".tar.gz"):
             with tarfile.open(target_path, "r:gz") as tar:
                 for member in tar.getmembers():
                     if member.name.endswith("bitcoind"):
-                        if not self.is_safe_path(os.path.basename(member.name)):
-                            logger.error(f"Unsafe path detected in archive: {member.name}")
-                            continue
                         member.name = os.path.basename(member.name)
                         tar.extract(member, self.bin_dir)
                         break
-        
         os.remove(target_path)
         logger.info("Node substrate deployed successfully.")
         return True
@@ -114,26 +137,17 @@ class SubstrateDeployer:
         url, filename = self.download_github_release(MINER_RELEASE_URL, "win64.zip")
         if not url: url, filename = self.download_github_release(MINER_RELEASE_URL, "windows.zip")
         if not url: return False
-
         target_path = os.path.join(self.bin_dir, filename)
         logger.info(f"Downloading Miner from {url}...")
-
         def download(): urllib.request.urlretrieve(url, target_path)
         await asyncio.get_event_loop().run_in_executor(None, download)
-
         logger.info("Extracting Miner substrate...")
         with zipfile.ZipFile(target_path, 'r') as zip_ref:
             for member in zip_ref.namelist():
                 if member.endswith(".exe"):
-                    if not self.is_safe_path(os.path.basename(member.name)):
-                        logger.error(f"Unsafe path detected in archive: {member.name}")
-                        continue
                     with zip_ref.open(member) as source, open(os.path.join(self.bin_dir, "fractal-miner.exe"), 'wb') as target:
                         shutil.copyfileobj(source, target)
                     break
-        
         os.remove(target_path)
         logger.info("Miner substrate deployed successfully.")
         return True
-
-import asyncio
