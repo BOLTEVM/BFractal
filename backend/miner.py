@@ -49,8 +49,9 @@ class BaseSubstrate:
             self._process = None
 
 def to_wsl_path(win_path: str) -> str:
-    """Safely converts a Windows path to a WSL path (supports any drive letter)."""
+    """Safely converts a Windows path to a WSL path or returns as-is if already Linux."""
     if not win_path: return win_path
+    if os.name != 'nt': return win_path  # Already on Linux/WSL
     if ":" not in win_path: return win_path.replace("\\", "/")
     
     drive, path = win_path.split(":", 1)
@@ -92,12 +93,18 @@ class FractalNode(BaseSubstrate):
         self.running = True
         
         if self.is_wsl:
-            wsl_path = to_wsl_path(exe_path)
-            # Ensure executable permission inside WSL
-            subprocess.run(["wsl", "chmod", "+x", wsl_path], capture_output=True)
-            cmd = ["wsl", wsl_path, "-server", "-rest"]
-            if datadir:
-                cmd.append("-datadir=" + to_wsl_path(datadir))
+            if os.name == 'nt':
+                wsl_path = to_wsl_path(exe_path)
+                # Ensure executable permission inside WSL
+                subprocess.run(["wsl", "chmod", "+x", wsl_path], capture_output=True)
+                cmd = ["wsl", wsl_path, "-server", "-rest"]
+                if datadir:
+                    cmd.append("-datadir=" + to_wsl_path(datadir))
+            else:
+                # Native Linux execution
+                cmd = [exe_path, "-server", "-rest"]
+                if datadir:
+                    cmd.append("-datadir=" + datadir)
         else:
             cmd = [exe_path, "-server", "-rest"]
             if datadir:
@@ -150,7 +157,7 @@ class FractalMiner(BaseSubstrate):
         if not self.running or self.start_time == 0: return 0
         return int(time.time() - self.start_time)
 
-    async def run(self, address: str, rpc_user: str, rpc_pass: str, threads: int = 1):
+    async def run(self, address: str, rpc_user: str, rpc_pass: str, threads: int = 1, pool_url: str = None, is_pool: bool = False):
         if not os.path.exists(self.exe_path):
             self.add_log("ERROR", f"Substrate {self.exe_name} not found in bin/.")
             return
@@ -159,14 +166,22 @@ class FractalMiner(BaseSubstrate):
         self.start_time = time.time()
         self.shares_accepted = 0
         self.shares_rejected = 0
-        cmd = [
-            self.exe_path,
-            "--rpc-addr", "127.0.0.1:18332",
-            "--rpc-user", rpc_user,
-            "--rpc-pass", rpc_pass,
-            "--address", address,
-            "--threads", str(threads)
-        ]
+        if is_pool and pool_url:
+            cmd = [
+                self.exe_path,
+                "--url", pool_url,
+                "--user", address,
+                "--threads", str(threads)
+            ]
+        else:
+            cmd = [
+                self.exe_path,
+                "--rpc-addr", "127.0.0.1:18332",
+                "--rpc-user", rpc_user,
+                "--rpc-pass", rpc_pass,
+                "--address", address,
+                "--threads", str(threads)
+            ]
 
         try:
             self._process = subprocess.Popen(

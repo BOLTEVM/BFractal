@@ -29,6 +29,8 @@ class MinerStartRequest(BaseModel):
     threads: int = 1
     rpc_user: str = "user"
     rpc_pass: str = "pass"
+    pool_url: str = None
+    is_pool: bool = False
 
 # Singletons
 coordinator = SubstrateCoordinator()
@@ -60,8 +62,12 @@ class TelemetryBroadcaster:
     async def poll_loop(self):
         while True:
             try:
-                node_info = await rpc.get_blockchain_info()
-                mining_info = await rpc.get_mining_info()
+                node_info = None
+                mining_info = None
+                # Only poll RPC if node substrate is running
+                if coordinator.node.running:
+                    node_info = await rpc.get_blockchain_info()
+                    mining_info = await rpc.get_mining_info()
                 
                 if node_info and node_info.get("result") and mining_info and mining_info.get("result"):
                     res = node_info["result"]
@@ -125,7 +131,7 @@ async def start_miner(req: MinerStartRequest):
     rpc.user = req.rpc_user
     rpc.password = req.rpc_pass
     asyncio.create_task(coordinator.miner.run(
-        req.address, req.rpc_user, req.rpc_pass, req.threads
+        req.address, req.rpc_user, req.rpc_pass, req.threads, req.pool_url, req.is_pool
     ))
     return {"success": True, "message": "Miner initialization started"}
 

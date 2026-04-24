@@ -41,7 +41,8 @@ class FractalRPCClient:
 
             return await asyncio.get_event_loop().run_in_executor(None, do_request)
         except Exception as e:
-            logger.error(f"RPC Error calling {method}: {e}")
+            # Change to debug to avoid spamming the console when node is starting up
+            logger.debug(f"RPC connection pending for {method}: {e}")
             return {"error": str(e), "result": None}
 
     async def get_blockchain_info(self):

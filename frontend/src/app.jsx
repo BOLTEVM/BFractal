@@ -6,6 +6,8 @@ export function App() {
   const [threads, setThreads] = useState(1);
   const [rpcUser, setRpcUser] = useState('user');
   const [rpcPass, setRpcPass] = useState('pass');
+  const [poolUrl, setPoolUrl] = useState('stratum+tcp://pool.example.com:port');
+  const [isPool, setIsPool] = useState(false);
   
   const [stats, setStats] = useState({ 
     node_running: false, 
@@ -49,8 +51,14 @@ export function App() {
   };
 
   const toggleMiner = async () => {
-    const endpoint = stats.miner_running ? '/miner/stop' : '/miner/start';
-    const payload = { address, threads: Number(threads), rpc_user: rpcUser, rpc_pass: rpcPass };
+    const payload = { 
+      address, 
+      threads: Number(threads), 
+      rpc_user: rpcUser, 
+      rpc_pass: rpcPass,
+      pool_url: isPool ? poolUrl : null,
+      is_pool: isPool
+    };
     try {
       await fetch(`http://${window.location.hostname}:8000${endpoint}`, { 
         method: 'POST', 
@@ -129,9 +137,35 @@ export function App() {
                     <input className="input-glow" value={address} onInput={e => setAddress(e.target.value)} disabled={stats.miner_running} />
                 </div>
                 <div className="input-section">
-                    <label>Threads</label>
-                    <input type="number" className="input-glow" value={threads} onInput={e => setThreads(e.target.value)} disabled={stats.miner_running} />
+                    <label>Mining Mode</label>
+                    <select className="input-glow" value={isPool ? 'pool' : 'solo'} onChange={e => setIsPool(e.target.value === 'pool')} disabled={stats.miner_running}>
+                        <option value="solo">Solo (Local Node)</option>
+                        <option value="pool">Pool (Stratum)</option>
+                    </select>
                 </div>
+            </div>
+
+            {isPool ? (
+                <div className="input-section">
+                    <label>Pool URL (Stratum)</label>
+                    <input className="input-glow" value={poolUrl} onInput={e => setPoolUrl(e.target.value)} disabled={stats.miner_running} placeholder="stratum+tcp://..." />
+                </div>
+            ) : (
+                <div className="grid-2">
+                    <div className="input-section">
+                        <label>RPC User</label>
+                        <input className="input-glow" value={rpcUser} onInput={e => setRpcUser(e.target.value)} disabled={stats.miner_running} />
+                    </div>
+                    <div className="input-section">
+                        <label>RPC Pass</label>
+                        <input className="input-glow" value={rpcPass} onInput={e => setRpcPass(e.target.value)} disabled={stats.miner_running} type="password" />
+                    </div>
+                </div>
+            )}
+
+            <div className="input-section">
+                <label>Hashing Threads</label>
+                <input type="number" className="input-glow" value={threads} onInput={e => setThreads(e.target.value)} disabled={stats.miner_running} />
             </div>
 
             <button className={`btn-premium ${stats.miner_running ? 'btn-stop' : 'btn-start'}`} onClick={toggleMiner} disabled={!stats.node_running && !stats.miner_running}>

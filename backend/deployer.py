@@ -23,6 +23,8 @@ class SubstrateDeployer:
         os.makedirs(self.bin_dir, exist_ok=True)
 
     def is_wsl_available(self):
+        if os.name != 'nt':
+            return True, "NATIVE_LINUX"
         try:
             res = subprocess.run(["wsl", "--list", "--quiet"], capture_output=True, text=True)
             if res.returncode == 0 and res.stdout.strip():
