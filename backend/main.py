@@ -44,6 +44,9 @@ class TelemetryBroadcaster:
             "headers_synced": 0,
             "peers": 0,
             "hashrate": 0,
+            "shares_accepted": 0,
+            "shares_rejected": 0,
+            "uptime": 0,
             "difficulty": 0,
             "logs": []
         }
@@ -71,6 +74,9 @@ class TelemetryBroadcaster:
                         "sync_progress": res.get("verificationprogress", 0),
                         "peers": res.get("connections", 0),
                         "hashrate": coordinator.miner.hashrate,
+                        "shares_accepted": coordinator.miner.shares_accepted,
+                        "shares_rejected": coordinator.miner.shares_rejected,
+                        "uptime": coordinator.miner.uptime,
                         "difficulty": m_res.get("difficulty", 0),
                         "logs": coordinator.get_logs()
                     })
@@ -78,6 +84,10 @@ class TelemetryBroadcaster:
                     self.state.update({
                         "node_running": coordinator.node.running,
                         "miner_running": coordinator.miner.running,
+                        "hashrate": coordinator.miner.hashrate,
+                        "shares_accepted": coordinator.miner.shares_accepted,
+                        "shares_rejected": coordinator.miner.shares_rejected,
+                        "uptime": coordinator.miner.uptime,
                         "logs": coordinator.get_logs()
                     })
             except Exception as e:

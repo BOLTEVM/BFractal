@@ -141,7 +141,14 @@ class FractalMiner(BaseSubstrate):
     def __init__(self):
         super().__init__("MINER", "fractal-miner.exe")
         self.hashrate = 0
-        self.shares = 0
+        self.shares_accepted = 0
+        self.shares_rejected = 0
+        self.start_time = 0
+
+    @property
+    def uptime(self):
+        if not self.running or self.start_time == 0: return 0
+        return int(time.time() - self.start_time)
 
     async def run(self, address: str, rpc_user: str, rpc_pass: str, threads: int = 1):
         if not os.path.exists(self.exe_path):
@@ -149,6 +156,9 @@ class FractalMiner(BaseSubstrate):
             return
 
         self.running = True
+        self.start_time = time.time()
+        self.shares_accepted = 0
+        self.shares_rejected = 0
         cmd = [
             self.exe_path,
             "--rpc-addr", "127.0.0.1:18332",
@@ -189,6 +199,13 @@ class FractalMiner(BaseSubstrate):
                 # Example: [MINER] Speed: 1.23 MH/s
                 match = re.search(r"Speed:\s+([\d\.]+)", msg)
                 if match: self.hashrate = float(match.group(1))
+                
+                # Parsing for shares (Generic patterns for common miners)
+                if "Accepted" in msg or "found share" in msg.lower() or "solution found" in msg.lower():
+                    self.shares_accepted += 1
+                elif "Rejected" in msg or "invalid" in msg.lower():
+                    self.shares_rejected += 1
+                    
                 self.add_log("PROC", msg)
 
 class SubstrateCoordinator:
